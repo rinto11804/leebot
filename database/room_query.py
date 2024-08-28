@@ -4,8 +4,8 @@ from database.connection import DBConnection
 
 
 class RoomQuery:
-    def __init__(self):
-        self.db = DBConnection()
+    def __init__(self, db: DBConnection):
+        self.db = db
         self.room_collection = self.db.get_collection("room")
         self.room_join_collection = self.db.get_collection("room_joinlist")
 
@@ -24,3 +24,11 @@ class RoomQuery:
             }
         )
         return res.acknowledged
+
+    def grant_point(self, room_id: str, user_id: str, point: int):
+        room_join = self.room_join_collection.update_one(
+            {"$and": [{"room_id": ObjectId(room_id)}, {"user_id": user_id}]},
+            {"$inc": {"points": int(point)}},
+        )
+
+        return room_join.acknowledged

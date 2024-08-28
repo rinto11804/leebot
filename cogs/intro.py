@@ -5,6 +5,7 @@ from discord import app_commands
 from database.user_query import UserQuery
 from database.room_query import RoomQuery
 from discord.ext.commands import Cog, Bot
+from database.connection import DBConnection
 
 ONBOARD_CHANNEL = int(os.getenv("ONBOARD_CHANNEL"))
 LEETCODE_ROOM_ID = str(os.getenv("LEETCODE_ROOM_ID"))
@@ -13,10 +14,11 @@ LEETCODE_ROOM_ID = str(os.getenv("LEETCODE_ROOM_ID"))
 class Register(discord.ui.Modal, title="Join Form"):
     email = discord.ui.TextInput(label="Email", placeholder="Your email id here...")
 
-    def __init__(self):
+    def __init__(self, db: DBConnection):
         super().__init__(timeout=0)
-        self.user_query = UserQuery()
-        self.room_query = RoomQuery()
+        self.db = db
+        self.user_query = UserQuery(self.db)
+        self.room_query = RoomQuery(self.db)
 
     async def on_submit(self, interaction: discord.Interaction):
         # email = interaction.data.get("components").get("value")
@@ -54,12 +56,15 @@ class Register(discord.ui.Modal, title="Join Form"):
 class IntroCog(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
+        self.db = bot.db
 
     @Cog.listener()
     async def on_message(self, message: discord.Message):
         pass
 
-    @app_commands.command(name="join", description="registe and join room")
+    @app_commands.command(
+        name="join", description="register and leetcode practice join room"
+    )
     async def feedback(self, interaction: discord.Interaction):
         if interaction.channel.id != ONBOARD_CHANNEL:
             return await interaction.response.send_message(
@@ -67,7 +72,7 @@ class IntroCog(Cog):
                 delete_after=10,
             )
 
-        await interaction.response.send_modal(Register())
+        await interaction.response.send_modal(Register(self.db))
 
 
 async def setup(bot: Bot):
