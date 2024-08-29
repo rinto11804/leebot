@@ -20,6 +20,7 @@ class CustomBot(commands.Bot):
     async def on_ready(self):
         await self.load_extension("cogs.intro")
         await self.load_extension("cogs.task")
+        await self.load_extension("cogs.leaderboard")
         await self.tree.sync()
         print(f"{self.user} has connected to Discord!")
 

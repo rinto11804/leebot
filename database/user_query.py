@@ -1,4 +1,4 @@
-from type import User
+from type import User, UserJoinedError
 from database.connection import DBConnection
 from bson import ObjectId
 from typing import Optional
@@ -20,7 +20,7 @@ class UserQuery:
             )
         )
         if user:
-            return False
+            raise UserJoinedError
         res = self.collection.update_one(
             {"_id": user_id},
             {"$set": {"discord_id": discord_id}},

@@ -26,6 +26,18 @@ class AnswerNotFoundError(Exception):
         super().__init__(self.message)
 
 
+class TaskExistError(Exception):
+    def __init__(self):
+        self.message = "Task already exist"
+        super().__init__(self.message)
+
+
+class UserJoinedError(Exception):
+    def __init__(self):
+        self.message = "Discord id is already connected with a user"
+        super().__init__(self.message)
+
+
 class User:
     def __init__(
         self,

@@ -1,14 +1,62 @@
 import discord
 import os
 from discord.ext.commands import Cog, Bot
+from discord import app_commands
+from database.connection import DBConnection
 from database.task_query import TaskQuery
 from database.user_query import UserQuery
 from database.answer_query import AnswerQuery
 from database.room_query import RoomQuery
-from type import User, Roles, Task, AnswerAlreadyCorrectedError, AnswerNotFoundError
+from type import (
+    User,
+    Roles,
+    Task,
+    AnswerAlreadyCorrectedError,
+    AnswerNotFoundError,
+    TaskExistError,
+)
 
 TASK_CHANNEL = int(os.getenv("TASK_CHANNEL"))
 LEETCODE_ROOM_ID = str(os.getenv("LEETCODE_ROOM_ID"))
+
+
+class CreateTask(discord.ui.Modal, title="Create Task Form"):
+    task_title = discord.ui.TextInput(label="Title", placeholder="Task title...")
+    handler = discord.ui.TextInput(label="Handler", placeholder="#task-handler...")
+    points = discord.ui.TextInput(label="Points", placeholder="Task Point...")
+
+    def __init__(self, db: DBConnection):
+        super().__init__(timeout=0)
+        self.db = db
+        self.user_query = UserQuery(self.db)
+        self.task_query = TaskQuery(self.db)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        title = interaction.data.get("components")[0].get("components")[0].get("value")
+        handler = (
+            interaction.data.get("components")[1].get("components")[0].get("value")
+        )
+        points = interaction.data.get("components")[2].get("components")[0].get("value")
+        try:
+            self.task_query.create_task(LEETCODE_ROOM_ID, title, handler, points)
+        except TaskExistError as e:
+            return await interaction.response.send_message(
+                e.message,
+                delete_after=10,
+                ephemeral=True,
+            )
+        return await interaction.response.send_message(
+            "Task created",
+            delete_after=10,
+            ephemeral=True,
+        )
+
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception
+    ) -> None:
+        return await interaction.response.send_message(
+            "Oops! Something went wrong.", ephemeral=True
+        )
 
 
 class TaskCog(Cog):
@@ -59,6 +107,30 @@ class TaskCog(Cog):
             )
 
         return await message.reply("answer submitted successfully", delete_after=5)
+
+    @app_commands.command(name="add-task", description="add new task")
+    async def add_task(self, interaction: discord.Interaction):
+        if interaction.channel.id != TASK_CHANNEL:
+            return await interaction.response.send_message(
+                f"To add task, please use the /add-task command in the <#{str(TASK_CHANNEL)}> channel.",
+                delete_after=10,
+            )
+        user = self.user_query.get_user_by_discord_id(interaction.user.id)
+        if not user:
+            return await interaction.response.send_message(
+                "you are not register",
+                delete_after=5,
+                ephemeral=True,
+            )
+
+        if Roles.ADMIN.value not in user.roles:
+            return await interaction.response.send_message(
+                "You cant use this add task command",
+                delete_after=5,
+                ephemeral=True,
+            )
+
+        await interaction.response.send_modal(CreateTask(self.db))
 
     async def mark_answer(self, payload: discord.RawReactionActionEvent):
         channel = self.bot.get_channel(payload.channel_id)

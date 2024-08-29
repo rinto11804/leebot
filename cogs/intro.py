@@ -1,6 +1,6 @@
 import discord
 import os
-from type import User
+from type import User, UserJoinedError
 from discord import app_commands
 from database.user_query import UserQuery
 from database.room_query import RoomQuery
@@ -31,7 +31,11 @@ class Register(discord.ui.Modal, title="Join Form"):
                 "You are not registered, join when you are register with this email",
                 delete_after=10,
             )
-        if not self.user_query.add_discord_id(user.id, discord_id):
+        try:
+            is_connected = self.user_query.add_discord_id(user.id, discord_id)
+        except UserJoinedError as e:
+            return await interaction.response.send_message(e.message, delete_after=10)
+        if not is_connected:
             return await interaction.response.send_message(
                 "Failed to load the discord id", delete_after=10
             )
@@ -58,14 +62,10 @@ class IntroCog(Cog):
         self.bot = bot
         self.db = bot.db
 
-    @Cog.listener()
-    async def on_message(self, message: discord.Message):
-        pass
-
     @app_commands.command(
         name="join", description="register and leetcode practice join room"
     )
-    async def feedback(self, interaction: discord.Interaction):
+    async def join_register(self, interaction: discord.Interaction):
         if interaction.channel.id != ONBOARD_CHANNEL:
             return await interaction.response.send_message(
                 f"To join, please use the /join command in the <#{str(ONBOARD_CHANNEL)}> channel.",
