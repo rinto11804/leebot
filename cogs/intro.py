@@ -13,6 +13,9 @@ LEETCODE_ROOM_ID = str(os.getenv("LEETCODE_ROOM_ID"))
 
 class Register(discord.ui.Modal, title="Join Form"):
     email = discord.ui.TextInput(label="Email", placeholder="Your email id here...")
+    username = discord.ui.TextInput(
+        label="Leetcode Username", placeholder="Your leetcode username"
+    )
 
     def __init__(self, db: DBConnection):
         super().__init__(timeout=0)
@@ -23,6 +26,9 @@ class Register(discord.ui.Modal, title="Join Form"):
     async def on_submit(self, interaction: discord.Interaction):
         # email = interaction.data.get("components").get("value")
         email = interaction.data.get("components")[0].get("components")[0].get("value")
+        username = (
+            interaction.data.get("components")[1].get("components")[0].get("value")
+        )
         discord_id = interaction.user.id
 
         user: User = self.user_query.get_user_by_email(email)

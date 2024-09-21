@@ -9,8 +9,12 @@ class UserQuery:
         self.db = db
         self.collection = self.db.get_collection("user")
 
-    def get_user_by_email(self, email: str) -> User:
-        user = User.from_mongodb(self.collection.find_one({"email": email}))
+    def get_user_by_email_and_username(self, email: str, username: str) -> User:
+        user = User.from_mongodb(
+            self.collection.find_one(
+                {"$and": [{"email": email}, {"username": username}]}
+            )
+        )
         return user
 
     def add_discord_id(self, user_id: ObjectId, discord_id: str) -> bool:
